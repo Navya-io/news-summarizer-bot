@@ -66,7 +66,7 @@ def summarize_article(text):
 # ----------------------------------------
 # Streamlit App UI
 # ----------------------------------------
-st.title("📰 News Summarizer Bot")
+st.title("News Summarizer Bot")
 st.write("Get the latest headlines and short summaries!")
 
 category = st.selectbox("Choose a category:", ["All"] + CATEGORIES)
