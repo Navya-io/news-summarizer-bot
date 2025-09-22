@@ -1,29 +1,13 @@
-# Databricks notebook source
+import os
 import requests
 import pandas as pd
+import streamlit as st
+from transformers import pipeline
 
-# 🔑 Replace with your NewsAPI key
-API_KEY = os.getenv("NEWS_API_KEY")
-
-# Example: Get top US headlines
-url = f"https://newsapi.org/v2/top-headlines?country=us&apiKey={API_KEY}"
-
-response = requests.get(url).json()
-
-# Extract relevant fields
-articles = response.get("articles", [])
-df = pd.DataFrame([{
-    "title": a.get("title"),
-    "author": a.get("author"),
-    "publishedAt": a.get("publishedAt"),
-    "content": a.get("content"),
-    "url": a.get("url")
-} for a in articles])
-
-print(df.head())
-
-
-# COMMAND ----------
+# ----------------------------------------
+# Load API Key (from Streamlit secrets)
+# ----------------------------------------
+API_KEY = os.getenv("NEWS_API_KEY") or st.secrets["NEWS_API_KEY"]
 
 CATEGORIES = [
     "business",
@@ -35,8 +19,9 @@ CATEGORIES = [
     "technology"
 ]
 
-# COMMAND ----------
-
+# ----------------------------------------
+# Function to Fetch News
+# ----------------------------------------
 def fetch_news(category=None, limit=10):
     if category:  # If user picks a category
         url = f"https://newsapi.org/v2/top-headlines?country=us&category={category}&apiKey={API_KEY}"
@@ -57,30 +42,10 @@ def fetch_news(category=None, limit=10):
         })
     return pd.DataFrame(data)
 
-# COMMAND ----------
-
-pip install transformers
-
-
-# COMMAND ----------
-
-# MAGIC %pip install torch
-# MAGIC
-
-# COMMAND ----------
-
-# MAGIC %restart_python
-
-# COMMAND ----------
-
-# MAGIC %restart_python
-
-# COMMAND ----------
-
-# Load summarizer model (make sure torch is installed!)
+# ----------------------------------------
+# Summarizer
+# ----------------------------------------
 summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-
-# COMMAND ----------
 
 def summarize_article(text):
     if not text or len(text.split()) < 20:
@@ -98,21 +63,22 @@ def summarize_article(text):
     )
     return summary[0]['summary_text']
 
-# COMMAND ----------
+# ----------------------------------------
+# Streamlit App UI
+# ----------------------------------------
+st.title("📰 News Summarizer Bot")
+st.write("Get the latest headlines and short summaries!")
 
-# Step 3: Run with User Choice
-# -------------------------------
-# Example: user picks category
-user_choice = "business"   # can be any from CATEGORIES, or None for all
-limit = 5
+category = st.selectbox("Choose a category:", ["All"] + CATEGORIES)
+limit = st.slider("Number of articles", 1, 10, 5)
 
-df = fetch_news(user_choice if user_choice != "All" else None, limit=limit)
-df["summary"] = df["content"].apply(summarize_article)
-
-# Display results
-for i, row in df.iterrows():
-    print(f"\n {row['title']}")
-    print(f" Published: {row['publishedAt']}")
-    print(f" {row['url']}")
-    print(f" Summary: {row['summary']}")
-    print("-" * 80)
+if st.button("Fetch News"):
+    df = fetch_news(None if category == "All" else category, limit=limit)
+    df["summary"] = df["content"].apply(summarize_article)
+    
+    for i, row in df.iterrows():
+        st.subheader(row["title"])
+        st.caption(f"Published: {row['publishedAt']}")
+        st.markdown(f"[Read full article]({row['url']})")
+        st.write(row["summary"])
+        st.markdown("---")
