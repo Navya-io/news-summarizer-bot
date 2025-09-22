@@ -1,5 +1,10 @@
 streamlit
 pandas
 requests
-torch
 transformers
+torch
+wordcloud
+matplotlib
+scikit-learn
+sentence-transformers
+faiss-cpu
